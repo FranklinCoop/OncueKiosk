@@ -1,0 +1,52 @@
+<html>
+<head>
+<title>Audio Select</title>
+<link REL="STYLESHEET" HREF="styles.css" TYPE="text/css">
+</head>
+
+<script language="javascript">
+function Play(id)
+{
+  var sFile = "Media/Track" + id + ".mp3";
+  document.mediaPlayer.showControls = true;
+  document.mediaPlayer.stop();
+  document.mediaPlayer.fileName = sFile;
+  document.mediaPlayer.play();
+}
+</script>
+
+<body>
+<img src="Graphics/demo_apps_.016-001.png" usemap="#imagemap">
+<map name="imagemap">
+  <area shape="circle" coords="306,74,12"  href="#" OnClick="Play(1)"/>
+  <area shape="circle" coords="306,104,12" href="#" OnClick="Play(2)"/>
+  <area shape="circle" coords="306,134,12" href="#" OnClick="Play(3)"/>
+  <area shape="circle" coords="306,164,12" href="#" OnClick="Play(4)"/>
+  <area shape="circle" coords="306,194,12" href="#" OnClick="Play(5)"/>
+  <area shape="circle" coords="306,224,12" href="#" OnClick="Play(6)"/>
+  <area shape="circle" coords="306,254,12" href="#" OnClick="Play(7)"/>
+  <area shape="circle" coords="306,284,12" href="#" OnClick="Play(8)"/>
+  <area shape="circle" coords="306,314,12" href="#" OnClick="Play(9)"/>
+  <area shape="circle" coords="306,344,12" href="#" OnClick="Play(10)"/>
+  <area shape="circle" coords="306,374,12" href="#" OnClick="Play(11)"/>
+  <area shape="circle" coords="306,404,12" href="#" OnClick="Play(12)"/>
+  <area shape="circle" coords="306,434,12" href="#" OnClick="Play(13)"/>
+</map>
+<span style="position: absolute; left: 556; top: 440">
+<a href="AudioStation.htm">
+<img border="0" src="Graphics/cancel.png"></a></span>
+<span style="position: absolute; left: 20; top: 420">
+<object id="mediaPlayer" width="240" height="44" classid="CLSID:22d6f312-b0f6-11d0-94ab-0080c74c7e95">
+  <param name="FileName" value="">
+  <param name="EnablePositionControls" value="1">
+  <param name="ShowControls" value="0">
+  <param name="AllowChangeDisplaySize" value="1">
+  <param name="DisplaySize" value="2">
+  <param name="AutoStart" value="1">
+  <param name="AutoRewind" value="0">
+  <param name="PlayCount" value="1">
+  <param name="TransparentAtStart" value="1">
+</object>
+</span>
+</body>
+</html>

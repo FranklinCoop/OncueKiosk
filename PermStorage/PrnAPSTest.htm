@@ -1,0 +1,166 @@
+`<HTML>
+<HEAD>
+<TITLE>ATL 3.0 test page for object PrnAPS</TITLE>
+</HEAD>
+
+<script language="VBSCRIPT">
+sub Msg(str)
+	bits.innerHTML = bits.innerHTML + str + "<br>"
+end sub
+
+sub ClearMsg()
+	bits.innerHTML = ""
+end sub
+
+sub LastMsg()
+	szmsg = ""
+	Msg(szmsg)
+end sub
+
+sub PrnConnected()
+	If PrnAPS.Connected() Then
+		Msg("PRN Open")
+	Else
+		Msg("PRN Closed")
+	End If
+end sub
+
+sub PrnOpen()
+	call PrnAPS.Open()
+	call PrnConnected()
+end sub
+
+sub PrnClose()
+	call PrnAPS.Close()
+	call PrnConnected()
+end sub
+
+sub PrnInfo()
+	dim buf
+
+	If PrnAPS.Connected() Then
+		buf = PrnAPS.Info()
+		Msg(buf)
+	Else
+		Msg("Connect error!")
+	End If
+End Sub
+
+sub PrnSend()
+	dim buf
+	dim i
+
+	If PrnAPS.Connected() Then
+		i = 7
+		buf = "Send OK!"
+		call PrnAPS.Send(buf, i)
+		If i > 0 Then
+			Msg(buf)
+		Else
+			Msg("Send error!")
+		End If
+	Else
+		Msg("Connect error!")
+	End If
+End Sub
+
+Sub PrnTest()
+	ClearMsg()
+	call PrnOpen()
+	call PrnInfo()
+	call PrnSend()
+	call PrnClose()
+End Sub
+
+Sub PrnAbout()
+	call PrnAPS.AboutBox()
+End Sub
+</script>
+
+<SCRIPT  LANGUAGE="JavaScript">
+
+PRN_INIT = '\x1b' + 'd' + '\0';
+PRN_CUT = '\x1b' + 'i';
+PRN_BOLD_ON = '\x1d' + 'D' + '\xFF';
+PRN_BOLD_OFF = '\x1d' + 'D' + '\x80';
+PRN_HRI_BELOW = '\x1d' + 'H' + '\x02';
+PRN_UPCA = '\x1d' + 'k' + '\0';
+PRN_ALIGN_LEFT = '\x1b' + 'C' + '\x02';
+PRN_FONT_12x20 = '\x1b' + '%' + '\x01';
+PRN_BARCODE = PRN_HRI_BELOW + PRN_UPCA;
+CrLf = '\x0d' + '\x0a';
+
+function PrintItem1()
+{
+	var s = "";
+	var d = new Date();
+
+	PrnAPS.Open();
+
+	if (!PrnAPS.Connected())
+	{
+		alert("PrnAPS.Open() Error!");
+		return;
+	}
+
+	// Initialize the printer
+	s = PRN_INIT;
+
+	//set bold off
+	s = s + PRN_BOLD_OFF;
+
+	//set alignment to left
+	s = s + PRN_ALIGN_LEFT;
+
+	//set font to 12x20
+	s = s + PRN_FONT_12x20;
+
+	//receipt item <bold on><data><bold off>
+	//s = s + PRN_BOLD_ON;
+	s = s + "Preserve";
+	//s = s + PRN_BOLD_OFF;
+	s = s + CrLf + CrLf;
+
+	//Write out the product description
+	s = s + "$1.00 Off any Two Preserve" + CrLf;
+	s = s + "Toothbrushes or Razor Items" + CrLf + CrLf;
+
+	//expiration <bold on><data><bold off>
+	//s = s + PRN_BOLD_ON;
+	s = s + "Expiration Date: ";
+	//s = s + PRN_BOLD_OFF;
+	s = s + "06/30/2012" + CrLf + CrLf;
+
+	// Write out the bar code
+	strUPC = "021000100101";
+	s = s + PRN_BARCODE + strUPC + '\0' + CrLf;
+
+	// Write out the footer and paper cut command
+	s = s + d.toDateString() + ' ' + d.toTimeString() + CrLf + CrLf; 
+	s = s + CrLf + CrLf + CrLf + CrLf;
+	s = s + PRN_CUT;
+	PrnAPS.Send(s, s.length);
+	PrnAPS.Close();
+}
+
+</script>
+
+<style>
+body { 
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 10pt;
+}
+</style>
+<BODY>
+<h3> PRN APS Object Test </h3>
+<br>
+<input style="LEFT: 74; WIDTH: 100; POSITION: absolute; TOP: 80; HEIGHT: 45" type="submit" value ="About PRN" onClick="PrnAbout()">
+<input style="LEFT: 184; WIDTH: 100; POSITION: absolute; TOP: 80; HEIGHT: 45" type="submit" value ="Test PRN" onClick="PrnTest()">
+<input style="LEFT: 294; WIDTH: 100; POSITION: absolute; TOP: 80; HEIGHT: 45" type="submit" value ="Send PRN" onClick="PrintItem1()" >
+<input style="LEFT: 404; WIDTH: 100; POSITION: absolute; TOP: 80; HEIGHT: 45" type="submit" value ="Clear Messages" onClick="ClearMsg()" >
+<br>
+<br>
+<div id=bits></div>
+</BODY>
+<OBJECT id=PrnAPS classid=CLSID:8752AB7C-7725-4802-96A6-4B0880462548></OBJECT>
+</HTML>

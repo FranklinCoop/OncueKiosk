@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>Coupon Printing</title>
+<link REL="STYLESHEET" HREF="styles.css" TYPE="text/css">
+</head>
+
+<body>
+<img src="Graphics/coupon_printing.png" usemap="#imagemap">
+<map name="imagemap">
+  <area shape="rect" coords="88,152,155,174" href="#" OnClick="PrintItem(1)"/>
+  <area shape="rect" coords="412,152,479,174" href="#" OnClick="PrintItem(2)"/>
+  <area shape="rect" coords="88,377,155,399" href="#" OnClick="PrintItem(3)"/>
+  <area shape="rect" coords="412,377,479,399" href="#" OnClick="PrintItem(4)"/>
+  <area shape="rect" coords="556,440,629,469" href="MainMenu.htm"/>
+</map>
+</body>
+
+<OBJECT ID="PrnAPS" CLASSID="CLSID:8752AB7C-7725-4802-96A6-4B0880462548"></OBJECT>
+<SCRIPT LANGUAGE="JavaScript" SRC="printer.js"></SCRIPT>
+</html>

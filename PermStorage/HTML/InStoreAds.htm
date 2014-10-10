@@ -1,0 +1,50 @@
+<html>
+<head>
+<title>In-Store Ads</title>
+<link REL="STYLESHEET" HREF="styles.css" TYPE="text/css">
+</head>
+
+<body>
+<img src="Graphics/demo_apps_.029-001.png">
+<!A HREF="javascript:doLink();" onMouseOver="status=url[ct];return true;" onMouseOut="status=''">
+<span style="position: absolute; left: 180; top: 240">
+<img border="0" name="Ad_Image" src="Graphics/ad1.png"></span>
+<span style="position: absolute; left: 556; top: 440">
+<a href="MainMenu.htm">
+<img border="0" src="Graphics/cancel.png"></a></span>
+</body>
+
+<SCRIPT LANGUAGE="JavaScript">
+<!--
+
+/*
+Script by FPMC at http://jsarchive.8m.com
+Submitted to JavaScript Kit (http://javascriptkit.com)
+For this and 400+ free scripts, visit http://javascriptkit.com
+*/
+//set image paths
+src = ["Graphics/ad1.png", "Graphics/ad2.png", "Graphics/ad3.png", "Graphics/ad4.png"]
+//set corresponding urls
+url = ["#", "#", "#", "#"]
+//set duration for each image
+duration = 4;
+//Please do not edit below
+ads=[]; ct=0;
+function switchAd() {
+var n=(ct+1)%src.length;
+if (ads[n] && (ads[n].complete || ads[n].complete==null)) {
+document["Ad_Image"].src = ads[ct=n].src;
+}
+ads[n=(ct+1)%src.length] = new Image;
+ads[n].src = src[n];
+setTimeout("switchAd()",duration*1000);
+}
+function doLink(){
+location.href = url[ct];
+} onload = function(){
+if (document.images)
+switchAd();
+}
+//-->
+</SCRIPT>
+</html>

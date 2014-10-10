@@ -1,0 +1,67 @@
+<html>
+<head>
+<title>DVD Station</title>
+<link REL="STYLESHEET" HREF="styles.css" TYPE="text/css">
+</head>
+
+<body>
+<img src="Graphics/demo_apps_.019-001.png">
+<span style="position: absolute; left: 0; top: 0; width: 640; z-index:-1">
+<object id="mediaPlayer" border="0" classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95">
+  <param name="FileName" value="">
+  <param name="EnablePositionControls" value="1">
+  <param name="ShowControls" value="1">
+  <param name="AllowChangeDisplaySize" value="1">
+  <param name="DisplaySize" value="4">
+  <param name="AutoStart" value="0">
+  <param name="AutoRewind" value="0">
+  <param name="PlayCount" value="1">
+  <param name="AutoSize" value="1">
+  <param name="ClickToPlay" value="0">
+  <param name="SendMouseClickEvents" value="1">
+  <!param name="TransparentAtStart" value="1">
+  <!uncomment these params for 3D wide screen>
+  <!param name="VideoBorderWidth" value="3">
+  <!param name="VideoBorderColor" value="8082945">
+  <!param name="VideoBorderColor" value="0">
+</object>
+</span>
+<span style="position: absolute; left: 556; top: 440; z-index: 1">
+<a href="DvdStation.htm">
+<img border="0" src="Graphics/cancel.png"></a></span>
+</body>
+<script>
+VIDEO_FILE = "Media/video.mp4"
+AUDIO_FILE = "Media/BeepGood.wav"
+PROMO_FILE = "Media/promo.mpeg"
+function PlayFile()
+{
+  //mediaPlayer.Open(AUDIO_FILE);
+  setTimeout("startCheckPlayer()",2500);
+  //document.mediaPlayer.AutoSize = true;
+  //document.mediaPlayer.showControls = true;
+  //document.mediaPlayer.FullScreenMode = true;
+  document.mediaPlayer.stop();
+  document.mediaPlayer.fileName = VIDEO_FILE;
+  document.mediaPlayer.play();
+}
+function startCheckPlayer()
+{
+	setInterval("checkPlayerStatus()",1000);
+}
+function checkPlayerStatus()
+{
+	if (document.mediaPlayer.PlayState == 0)
+	{
+//		alert("MediaPlayer stopped");
+		window.location.assign("DVDStation.htm");
+	}
+}
+window.onload=PlayFile
+</script>
+<SCRIPT FOR="mediaPlayer" EVENT="Click( iButton, iShiftState, fX, fY )" 
+LANGUAGE="JScript">
+  document.mediaPlayer.stop();
+  window.location.assign("DVDStation.htm");
+</SCRIPT>
+</html>

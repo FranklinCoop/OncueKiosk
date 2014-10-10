@@ -1,0 +1,94 @@
+<html>
+<head>
+<title>PriceCheck</title>
+<meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<style type="text/css" media="screen">
+<!--
+.info {
+	color: #EB5F01;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 32px;
+	font-weight: bold;
+}
+.address {
+	color: #FFFFFF;
+	font-weight: 600;
+	font-size: 9px;
+	margin: 4px;
+	padding: 4px;
+}
+-->
+</style>
+<script>
+<!--
+var g_UPC = "";
+
+function keyDown()
+{
+	var key = window.event.keyCode;
+
+	if( (key == 0x0D) || (key == 0x0A))
+	{
+		frmPriceCheck.txtUPC.value = g_UPC;
+		g_UPC = "";
+		frmPriceCheck.submit();
+	}
+	else if( (key > 0x2F) && (key < 0x3A) )
+	{
+		g_UPC = g_UPC + String.fromCharCode(key);
+	}
+}
+
+function frmSubmit() {
+	document.getElementById('txtMsg').innerHTML = "Please wait...";
+	return true;
+}
+
+src = ["ad1.png", "ad2.png", "ad3.png", "ad4.png", "ad5.png", "ad6.png", "ad7.png", "ad8.png"];
+path = "./images/";
+duration = 4000;
+ct=0;
+function switchAd() {
+	ct++;
+	if (ct >= src.length)
+		ct = 0;
+	document["AdImage"].src = path + src[ct];
+	setTimeout("switchAd()", duration);
+}
+
+
+function Load() {
+	setTimeout("switchAd()", duration);
+}
+
+document.onkeypress = keyDown;
+window.focus();
+-->
+</script>
+</head>
+<body scroll="no" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" onload="Load();">
+<table border="0" align="center" cellpadding="0" cellspacing="0" background="./images/bg640.jpg">
+  <tr>
+    <td>
+      <img src="./images/fullbg640_text.jpg" border="0">
+    </td>
+  </tr>
+
+  
+  <tr>
+    <td align="center" valign="center" height="355">
+      <p class="info" id="txtMsg">Please scan item below</p>
+      <form name="frmPriceCheck" method="get" action="lookup.htm" onsubmit="return frmSubmit();">
+      <input name="txtUPC" type="hidden" maxlength="20" >
+    </td>
+  </tr>
+
+  <tr>
+    <td align="center" valign="bottom" bgcolor="#429641">
+       <p><br><br>
+       </p>
+    </td>
+  </tr>
+</table>
+</BODY>
+</HTML>

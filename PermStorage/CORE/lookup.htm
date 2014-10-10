@@ -1,0 +1,170 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Lookup</title>
+<meta HTTP-EQUIV="Pragma" CONTENT="no-cache">
+<style type="text/css" media="screen">
+<!--
+.barcode {
+	color: #000000;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 18px;
+	font-weight: bold;
+}
+.price {
+	color: #FF0000;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 28px;
+	font-weight: bold;
+}
+.desc {
+	color: #429641;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 24px;
+	font-weight: bold;
+}
+.address {
+	color: #FFFFFF;
+	font-weight: 600;
+	font-size: 9px;
+	margin: 4px;
+	padding: 4px;
+}
+-->
+</style>
+<script type="text/javascript" src="./includes/database.js"></script>
+<script type="text/javascript" src="./includes/printer.js"></script>
+<script type="text/javascript">
+var gImgPath = "./images/";
+var gValidUPC = false;
+var gTimer;
+var gUpc = "";
+var gDesc = "Item not found!";
+var gBrand = "";
+var gPrice = "";
+var gMemPrice = "";
+var gItem = "";
+var gTimeoutBack = 9000;
+var gTimeoutPrint = 9000;
+var gDT ="";
+
+function startTimer()
+{
+	clearTimeout(gTimer);
+	gTimer = setTimeout("location.assign('PriceCheck.htm')", gTimeoutBack);
+}
+
+function zeroPad(num,count)
+{
+var numZeropad = num + '';
+while(numZeropad.length < count) {
+numZeropad = "0" + numZeropad}
+return numZeropad;
+}
+
+function HideImage()
+{
+	document["AdImage"].height = "0";
+	document["AdImage"].width = "0";
+}
+
+function ShowPrint()
+{
+	if (gValidUPC)
+	{
+		document.getElementById('print').style.visibility = "visible";
+	}
+	startTimer();
+}
+
+function lookup()
+{
+	var upc_value = getQuerystring('txtUPC');
+	var upc_value_new = upc_value;
+	if (upc_value.length > 8) {upc_value_new = upc_value.slice(0, -1)}
+	if (upc_value.length >7 && upc_value.length <=13) {upc_value_new = upc_value.slice(0, -1)}
+	else {upc_value_new = upc_value}
+	upc_value_new = zeroPad(upc_value_new, 13);
+	var ret = (dbLookup(upc_value_new));
+	barcode.innerText = upc_value;
+	
+	
+	if (ret)
+	{
+		if (sDT == 0){
+		price.innerText = 'Price: ' + sPrice;
+	}
+	if (sDT == 1){
+		price.innerText = 'Sale Price: ' + sPrice;
+	}
+	if (sDT == 2){
+		price.innerText = 'Normal Price: ' + sPrice + '\nMember Sale Price: ' + sMemPrice;
+	}
+	desc.innerText = sBrand +' '+sDesc;
+		gValidUPC = true;
+		gUpc = upc_value;
+		gDesc = sDesc;
+		gPrice = sPrice;
+		gMemPrice = sMemPrice;
+		gBrand = sBrand;
+		gDT = sDT;
+		ShowPrint();
+		gTime = setTimeout(gTimeoutPrint)
+	}
+	else {
+		desc.innerText = gDesc;
+		gValidUPC = false;
+		ShowPrint();
+		gTime = setTimeout(3000)
+	}
+	
+	return ret;
+}
+
+function PrintUPC()
+{
+	PrintCoupon(gUpc,gBrand,gDesc,gPrice,gMemPrice,gDT);
+}
+
+</script>
+
+</head>
+<body scroll="no" topmargin="0" leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" onload="lookup();">
+<form name="frmPriceCheck" id="frmPriceCheck">
+<table border="0" align="center" cellpadding="0" cellspacing="0" background="./images/bg640.jpg">
+<thead>
+  <tr>
+    <td>
+      <img src="./images/fullbg640_text.jpg" border="0">
+    </td>
+  </tr>
+</thead>
+<tfoot>
+  <tr>
+    <td align="center" valign="bottom" bgcolor="#429641">
+      <p><br><br>
+      </p>
+    </td>
+  </tr>
+</tfoot>
+<tbody>
+  <tr>
+    <td align="center" valign="top" height="355">
+      <center>
+        <b><font face="Arial" color="blue">Scanned barcode:</font></b>
+        <label class="barcode" id="barcode" name="barcode" align="center"></label><br>
+        <label class="desc" id="desc" name="desc" align="center"></label><br>
+        <label class="price" id="price" name="price" align="center"></label><br>
+      </center><br/></br/>
+     
+      <br><br><button type="button" id="print" value="Print" style="font-size:xx-large;visibility:hidden;vertical-align:bottom" onclick="PrintUPC()">Print</button>
+       <br/><br/>
+       <button type="button" name="back" value="BACK" style="font-size:xx-large" onclick="location.href='PriceCheck.htm'">BACK</button>
+    </td>
+  </tr>
+</tbody>
+</table>
+</form>
+</body>
+<OBJECT ID="PrnAPS" CLASSID="CLSID:8752AB7C-7725-4802-96A6-4B0880462548"></OBJECT>
+</html>

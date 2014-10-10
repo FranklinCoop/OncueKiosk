@@ -1,0 +1,545 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<title>SQLiteX Demo</title>
+<hta:application
+	id="sqlitexec"
+	scroll="no"
+	windowstate="normal"
+	maximizebutton="yes"
+	sysmenu="yes"
+	singleinstance="no"
+	showintaskbar="yes"
+	caption="yes"
+	border="thick"
+	applicationname="sqlitexec"
+	scrollflat="no">
+</hta:application>
+<script language="javascript">
+var prg_width = 200;
+ 
+var colID = 0;
+var colUPC = 1;
+var colDESC = 2;
+var colPRICE = 3;
+
+var fldArray = ["id", "upc", "desc", "price"];
+
+var dbSQL = "";
+var dbSchema = null;
+var dbName = "items";
+var dbTable = "items";
+var dbFile = ".\\" + dbName + ".db";
+var dbOpened = false;
+
+var objStatus = null;
+var objCmd = null;
+var objTable = null;
+
+function dbDbg(status)
+{
+	if (objStatus)
+	{
+		if (status == "")
+			objStatus.value = status;
+		else
+		{
+			objStatus.value += status;
+		}
+	}
+	else if (status != "")
+		alert(status);
+}
+
+function dbStatus(status)
+{
+	if (objStatus)
+		objStatus.innerText = status;
+	else if (status != "")
+		alert(status);
+}
+
+function dbError(e)
+{
+	dbStatus(sError = dbSQL + "\nError: " + e.number + "\n" + e.description);
+}
+
+function dbCmd(sCmd)
+{
+	var ret = false;
+
+	if (sCmd == "")
+		return false;
+
+	if (!dbOpened)
+		dbOpen(dbFile);
+
+	if (dbOpened)
+	{
+		try
+		{
+			dbSQL = sCmd;
+			sqlitex_statement.Prepare( sCmd );
+			sqlitex_statement.Step();
+			ret = true;
+		}
+		catch ( e )
+		{
+			dbError(e);
+			ret = false;
+		}
+	}
+
+	return ret;
+}
+
+function dbExec(sCmd)
+{
+	var ret = dbCmd(sCmd);
+
+	if (ret)
+	{
+		ret = sqlitex_statement.Done;
+		sqlitex_statement.Close();
+		if (ret)
+			dbStatus("Command executed sucessfully.");
+		else
+			dbStatus("Command execution error!");
+	}
+	return ret;
+}
+
+function dbClose()
+{
+	if (dbOpened)
+	{
+		sqlitex_statement.Close();
+		sqlitex_connection.Close();
+	}
+	dbOpened = false;
+}
+
+function dbOpen(dbName)
+{
+	try
+	{
+		dbClose();
+		sqlitex_connection.Open(dbName);
+		sqlitex_statement.ActiveConnection = sqlitex_connection;
+		dbOpened = true;
+		dbStatus("SQLiteX version = " + sqlitex_connection.Version);
+	}
+	catch( e )
+	{
+		dbError(e);
+	}
+}
+
+function dbTestMemDb()
+{
+	var oDb = sqlitex_connection;
+	var oStmt = sqlitex_statement;
+	var iCnt = 100;
+
+	dbDbg("");
+	dbDbg("dbTestMemDb()...\n");
+
+	dbClose();
+
+	oDb.OpenInMemory();
+	oStmt.ActiveConnection = oDb;
+	oStmt.CommandText = "CREATE TABLE Test( i INTEGER PRIMARY KEY,a, b, c )";
+	oStmt.Prepare();
+	oStmt.Execute();
+	oStmt.Close();
+
+	oStmt.CommandText = "INSERT INTO Test(a,b,c) VALUES (:one,?,:three)";
+	oStmt.Prepare();
+	dbDbg("Number of records = [" + iCnt + "]\n");
+	dbDbg("Number of parameters = [" + oStmt.ParameterCount + "]\n");
+	dbDbg("Parameter names = ['" + oStmt.ParameterName(1) + "','" + oStmt.ParameterName(2) + "','" +oStmt.ParameterName(3) + "']\n");
+
+	for( i=0; i<iCnt; i++)
+	{
+		oStmt.BindParameters( "String #" + i, Math.random() * 10000,  (Math.random() < 0.5)? null : i );
+		oStmt.Step();
+		oStmt.Reset();
+	}
+	oStmt.Close();
+
+	i = 0;
+	oStmt.CommandText = "SELECT i,a AS 'Hello from a' ,b AS 'Hello from b', c AS 'Hello from c' FROM Test ORDER BY b DESC";
+	oStmt.Prepare();
+	while ( !oStmt.Step() && (i < iCnt))
+	{
+		dbDbg("Index " + oStmt.ColumnValue(0) + " = [");
+		dbDbg( oStmt.ColumnName(1) + ": '" + oStmt.ColumnValue("Hello from a") + "', ");
+		dbDbg( oStmt.ColumnName(2) + ": '" + oStmt.ColumnValue("Hello from b") + "', ");
+		dbDbg( oStmt.ColumnName(3) + ": '" + oStmt.ColumnValue("Hello from c") + "'");
+		dbDbg("]\n");
+		i++;
+	}
+
+	oStmt.Close();
+	oDb.Close();
+	oStmt = null;
+	oDb = null;
+
+	dbDbg( "Test complete!" );
+	return true;
+}
+
+function pause( iMilliseconds )
+{
+	var sDialogScript = 'window.setTimeout( function () { window.close(); }, ' + iMilliseconds + ');';
+	window.showModalDialog('javascript:document.writeln ("<script>' + sDialogScript + '<' + '/script>")');
+}
+
+var oDb = null;
+var nRecs = 10000;
+var nDiv = 100;
+var nScale = nRecs;//(nRecs/nDiv);
+var nProgress = 0
+var bInterrupt = false
+
+function litex_Error()
+{
+	dbDbg( "Error!" )
+}
+
+// event handling
+function litex_Progress()
+{
+	//dbDbg("Progress event was raised " + nProgress + " time(s)\n");
+	nProgress++;
+	return false; // doesn't work, cannot pass value back
+}
+
+function dbTestDbCallback()
+{
+	nProgress = 0;
+	nScale = nRecs;
+
+	dbClose();
+
+	dbDbg("");
+	dbDbg("dbTestDbCallback()...\n");
+
+	var iCnt = nRecs;
+	var sDb = "sqlite3.db";
+	//var oDb = new ActiveXObject( "LiteX.LiteConnection" );
+	var oStmt = new ActiveXObject( "LiteX.LiteStatement" );
+
+	oDb = new ActiveXObject( "LiteX.LiteConnection" );
+	dbDbg( "Hello from SQLite version " + oDb.Version + "!\n" );
+	pause(1);
+	dbDbg( "...building table...\n");
+	pause(1);
+	// this way we can connect only to ILiteProgress interface
+	//WScript.ConnectObject( oDb, "litex_" )
+	eval("function oDb::Progress() {return litex_Progress();}");
+
+	oDb.Open( sDb );
+	oDb.ProgressPeriod = nDiv;
+
+	oDb.Execute( "DROP TABLE IF EXISTS Test" );
+	oDb.Execute( "CREATE TABLE Test( a INTEGER PRIMARY KEY, b TEXT COLLATE unaccented, c INTEGER, d FLOAT )" );
+	oDb.Execute( "CREATE INDEX b ON Test( b ASC )" );
+
+	oDb.Execute( "BEGIN TRANSACTION" );
+	nProgress = 0;
+	nScale = (nRecs/nDiv);
+	for( i=0; i<iCnt; i++ )
+	{
+		oDb.Execute( "INSERT INTO Test( b, c, d ) VALUES (?,?,:three)", "ÊÓ¥Œ£¯ÆÑ:" + i, Math.round( Math.random() * 100000 ), Math.random() );
+		oDb.Execute( "INSERT INTO Test( b, c, d ) VALUES (?,?,:three)", "êó¹œ³zŸæñ:"+i, Math.round( Math.random() * 100000 ), Math.random() );
+		if (0 == (i % nDiv))
+			litex_Progress();
+	}
+	oDb.Execute( "COMMIT TRANSACTION" );
+	dbDbg( "...progress = " + nProgress + "...\n");
+
+	dbDbg( "...selecting from " + (iCnt * 2) + " records...\n");
+	pause(1);
+	i = 0;
+	nProgress = 0;
+	oStmt = oDb.Prepare( "SELECT a,unaccent(b),c,d FROM Test ORDER BY c, b DESC" );
+	dbDbg( "...rowcount = " + oStmt.RowCount + "...\n");
+	//Note! oDb.Progress will fire 5600 times with ProgressPeriod = 100 and table rows = 20000 
+	nScale = 5600;
+	while( !oStmt.Step() )
+	{
+		//dbDbg( oStmt.ColumnValue("a") + "\t" +  oStmt.ColumnValue(1) + "\t" + oStmt.ColumnValue("c") + "\t" + oStmt.ColumnValue(3) + "\n");
+		//i++;
+		//if (0 == (i % nDiv))
+		//	litex_Progress();
+	}
+	dbDbg( "...progress = " + nProgress + "...\n");
+
+	dbDbg( "...getting averages...\n");
+	pause(1);
+	nProgress = 0;
+	bInterrupt = true;
+	//Note! oDb.Progress will fire 600 times with ProgressPeriod = 100 and table rows = 20000 
+	nScale = 600;
+	try
+	{
+		oDb.Execute( "SELECT avg(c) FROM Test" );
+	}
+	catch( e )
+	{
+		dbDbg( "Number: ", e.number>>16 & 0x1FFF, e.number & 0xFFFF );
+		dbDbg( ", Message:", e.message );
+		dbDbg( ", Description:", e.description );
+		dbDbg( "\n" );
+	}
+	finally
+	{
+		oDb.ProgressPeriod = 0;
+	}
+	dbDbg( "...progress = " + nProgress + "...\n");
+
+	//clearInterval(mTimer);
+	oStmt.Close();
+	oDb.Close();
+	oStmt = null;
+	oDb = null;
+	dbDbg( "Test complete!\n" );
+}
+
+function dbText( type, value )
+{
+	var sResult = new String();
+	switch( type )
+	{
+	    case 0 /*lxNull*/: sResult = "NULL"; break;
+		case 6/*lxBinary*/: sResult = "BLOB"; break;
+		default: sResult = value; break;
+	}
+	return sResult;
+}
+
+function TableClear( oTable )
+{
+	var oRows = oTable.rows;
+	while( oRows.length > 0 )
+	{
+		oTable.deleteRow();
+	}
+}
+
+function btn_exec_onclick()
+{
+	dbStatus("");
+
+	var oCmd = objCmd;
+	var sCmd = oCmd.innerText;
+	var ret = false;
+
+	if ( sCmd.length > 0 )
+	{
+		try
+		{
+			if (!dbCmd(sCmd))
+			{
+				return false;
+			}
+
+			if ( sqlitex_statement.Done )
+			{
+				dbStatus("Command executed sucessfully.");
+			}
+			else
+			{
+				var i = 0;
+				var n = 0;
+				var oHead;
+				var oRow;
+				var oCell;
+				var oTable = objTable;
+
+				TableClear( oTable );
+				oHead = oTable.createTHead();
+				oRow = oHead.insertRow();
+
+				for( i=0; i<sqlitex_statement.ColumnCount; i++ )
+				{
+					oCell = oRow.insertCell();
+					oCell.innerText = sqlitex_statement.ColumnName(i);
+				}
+
+				while( !sqlitex_statement.Done && (n<500) )
+				{
+					oRow = oTable.insertRow();
+					for( i=0; i<sqlitex_statement.ColumnCount; i++ )
+					{
+						oCell = oRow.insertCell();
+						oCell.innerText = dbText( sqlitex_statement.ColumnType(i), sqlitex_statement.ColumnValue(i) );
+					}
+					n++;
+					sqlitex_statement.Step();
+				}
+
+				dbStatus("Returned " + n + " row(s).");
+			}
+
+			sqlitex_statement.Close();
+			ret = true;
+		}
+		catch( e )
+		{
+			dbError(e);
+			ret = false;
+		}
+	}
+
+	return ret;
+}
+
+function btn_test_onclick()
+{
+	var s = "select * from items where upc='4879416519217';";
+
+	objCmd.innerText = s;
+	btn_exec_onclick();
+
+	try
+	{
+		if (!dbCmd(s))
+		{
+			return false;
+		}
+
+		if ( !sqlitex_statement.Done )
+		{
+			var i;
+			s = "";
+			for( i=colUPC; i<=colPRICE; i++ )
+			{
+				s += sqlitex_statement.ColumnName(i) + ": ";
+				s += dbText( sqlitex_statement.ColumnType(i), sqlitex_statement.ColumnValue(i) ) + "\n";
+			}
+		}
+
+		sqlitex_statement.Close();
+		dbStatus(s);
+		return true;
+	}
+	catch( e )
+	{
+		dbError(e);
+		return false;
+	}
+}
+
+function btn_clear_onclick()
+{
+	objCmd.value = "";
+	TableClear(objTable);
+	objStatus.value = "";
+	return true;
+}
+
+function btn_load_onclick()
+{
+	var ret = true;
+	var s = "";
+	var i;
+	var cmdArray =
+[
+"drop table if exists items;",
+"create table items (id INTEGER PRIMARY KEY,upc TEXT,desc TEXT,price double);",
+"'401796568581','VIC Loyalty Card',1.11",
+"'710001636103','Pilot Rewards Card',2.22",
+"'4879416519217','CVS Extra Care',3.33",
+"'420035792457','The PIG Card',4.44",
+"'478077984262','Ingles Advantage Card',5.55",
+"'1239686657','Charleston County Library',6.66"
+]; //sample values if not overridden by dbschema.js
+
+	ret = dbExec( "BEGIN TRANSACTION" );
+
+	if (ret)
+	{
+		if (dbSchema)
+			cmdArray = dbSchema;
+
+		for (i=0;i<cmdArray.length;i++)
+		{
+			if (i < 2)
+				s = cmdArray[i];
+			else
+				s = "insert into items (upc,desc,price) values (" + cmdArray[i] + ");";
+
+			ret = dbExec(s);
+			if (!ret)
+				break;
+		}
+	}
+
+	if (ret)
+		ret = dbExec( "COMMIT TRANSACTION" );
+
+	if (ret)
+	{
+		s = "select * from items;";
+		objCmd.innerText = s;
+		btn_exec_onclick();
+	}
+
+	return ret;
+}
+
+function btn_testmemdb_onclick()
+{
+	btn_clear_onclick();
+	dbTestMemDb();
+}
+
+function btn_testdbcallback_onclick()
+{
+	btn_clear_onclick();
+	dbTestDbCallback();
+}
+
+function SetObjects()
+{
+	objCmd = document.all.item("sql_cmd");
+	objTable = document.all.item("sql_table");
+	objStatus = document.all.item("sql_stat");
+}
+
+function OnLoad()
+{
+	SetObjects();
+	dbOpen(dbFile);
+}
+</script>
+<script type="text/javascript" src="./dbschema.js"></script>
+</head>
+<body style="background-color: cadetblue;" onload="OnLoad();">
+<table id="btns" cellspacing="1" cellpadding="0" border="0">
+  <tr>
+    <td><label for="sql_cmd"><strong><font size="2">SQL command:</font></strong></label></td>
+    <td><div align="center"><input id="btn_exec" onclick="return btn_exec_onclick()" type="button" value="Execute" name="btn_exec"></div></td>
+    <td><div align="center"><input id="btn_clear" onclick="return btn_clear_onclick()" type="button" value="Clear" name="btn_clear"></div></td>
+    <td><div align="center"><input id="btn_load" onclick="return btn_load_onclick()" type="button" value="Init Data" name="btn_load"></div></td>
+    <td><div align="center"><input id="btn_test" onclick="return btn_test_onclick()" type="button" value="Test Data" name="btn_test"></div></td>
+    <td><div align="center"><input id="btn_testmemdb" onclick="return btn_testmemdb_onclick()" type="button" value="Test MemDb" name="btn_testmemdb"></div></td>
+    <td><div align="center"><input id="btn_testdbcallback" onclick="return btn_testdbcallback_onclick()" type="button" value="Test DbCallback" name="btn_testdbcallback"></div></td>
+  </tr>
+</table>
+<textarea id="sql_cmd" style="width: 100%; height: 20%; background-color: darkseagreen;" rows="7" cols="80"></textarea><br>
+<label for="tbl_space"><strong><font size="2">SQL results:</font></strong></label>
+<div id="tbl_space" style="border: thin inset ; display: block; overflow: auto; width: 100%; height: 46%; background-color: darkseagreen;">
+  <table id="sql_table" cellspacing="1" cellpadding="1" border="1">
+  </table>
+</div>
+<label for="sql_stat"><strong><font size="2">Execution status:</font></strong></label>
+<textarea id="sql_stat" style="width: 100%; height: 20%; background-color: darkseagreen;" rows="2" readonly="readonly" cols="80"></textarea>
+</body>
+<object id="sqlitex_connection" style="display: none;" height="0" width="0"
+ classid="CLSID:3E22694D-7B92-42A1-89A7-668E2F7AA107"></object>
+<object id="sqlitex_statement" style="display: none;" height="0" width="0"
+ classid="CLSID:453A51CC-F944-4643-9540-A78253B8019C"></object>
+</html>

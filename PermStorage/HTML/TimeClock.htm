@@ -1,0 +1,345 @@
+<html>
+<head>
+<title>Time Clock Demo</title>
+<link REL="STYLESHEET" HREF="styles.css" TYPE="text/css">
+</head>
+<body>
+<img src="Graphics/ClockBlank.jpg" usemap="#imagemap">
+<img src="Graphics/demo_apps_.002-001.png" usemap="#imagemap">
+<map name="imagemap">
+  <area shape="rect" coords="320,120,600,300" href="#" OnClick="DoCancel()"/>
+</map>
+<font face="Arial" size="4">
+<span id=strDate></span>
+<span id=strTime></span>
+<SELECT  size="12"  id="box1" name="List1" style="position: absolute; left: 11; top: 18; width: 282; height: 418; font-family:Arial; font-size:10pt; font-weight:bold">
+</SELECT>
+<INPUT TYPE="image" SRC="Graphics/btnIn.jpg" OnClick="DoIn()"
+  style="position: absolute; left: 299; top: 302" width="164" height="58">
+<INPUT TYPE="image" SRC="Graphics/btnOut.jpg" OnClick="DoOut()"
+  style="position: absolute; left: 470; top: 302" width="164" height="58">
+<INPUT TYPE="image" SRC="Graphics/btnView.jpg" OnClick="DoView()"
+  style="position: absolute; left: 300; top: 367" width="336" height="57">
+<LABEL size="23" id="label1" style="position: absolute; left: 15; top: 440; width: 500; height: 26; font-weight:700"></LABEL>
+</body>
+
+
+<object id="Media1" width="0" height="0" vspace="0" border="0" classid="CLSID:22D6F312-B0F6-11D0-94AB-0080C74C7E95">
+  <!param name="FileName" value="file:///PermStorage/BeepGood.wav">
+  <param name="EnablePositionControls" value="0">
+  <param name="ShowControls" value="0">
+  <param name="AllowChangeDisplaySize" value="1">
+  <param name="DisplaySize" value="4">
+  <param name="AutoStart" value="1">
+  <param name="AutoRewind" value="1">
+  <param name="PlayCount" value="1">
+  <param name="AutoSize" value="1">
+</object>
+
+<script>
+<!--
+// global constants
+COM_PORT = 2;
+COM_RS232 = "115200,n,8,1";
+POLL_INTERVAL = 100;
+AUDIO_CLOCK_IN  = "Media/BeepGood.wav"
+AUDIO_CLOCK_OUT = "Media/BeepError.wav"
+
+// global variables
+var iCommTimerID = 0;
+var iStatusTimerID = 0;
+var strRecv;
+//var Comm1 = new ActiveXObject("CECOMM.Comm");
+var Emps = new Array();
+
+function PlayFile(FileName)
+{
+    Media1.Open(FileName);
+}
+
+function ClearStatus()
+{
+    label1.innerHTML = "Please scan employee badge..."
+}
+
+function SetStatus()
+{
+	if (iStatusTimerID)
+		clearTimeout(iStatusTimerID);
+	iStatusTimerID = setTimeout("ClearStatus()", 3000);
+}
+
+function AddOption(selectObject, optionText, optionValue)
+{
+    var optionObject = new Option(optionText, optionValue);
+    var optionRank = selectObject.options.length;
+    selectObject.options[optionRank] = optionObject;
+}
+
+function AddItem(selectObject, optionText)
+{
+    var optionRank = selectObject.options.length;
+    var optionObject = new Option(optionText, optionRank);
+    selectObject.options[optionRank] = optionObject;
+}
+
+function AddEntry(entryData)
+{
+    var s = "";
+    var idx = 0;
+    var bIn = 1;
+
+    while (entryData.charAt(idx) >= ' ') {
+        s = s + entryData.charAt(idx++);
+    }
+
+    var sData = s;
+    
+    var vDate = new Date();
+    var daym = vDate.getDate()
+    var hours = vDate.getHours()
+    var minutes = vDate.getMinutes()
+    var seconds = vDate.getSeconds()
+    var dn = "AM" 
+
+    if (hours > 12)
+    {
+       dn = "PM"
+       hours = hours-12
+    }
+
+    if (hours == 0)
+       hours = 12
+
+    if (minutes <= 9)
+       minutes = "0" + minutes
+
+    if (seconds <= 9)
+       seconds = "0" + seconds
+
+    var ctime = hours + ":" + minutes + ":" + seconds + " " + dn
+
+    if (s.length > 14)
+    {
+        var ID0_LEN = 15;
+        var ID1_LEN = 8;
+        var ID2_LEN = 13;
+        var FN_LEN = 20;
+        var LN_LEN = 26;
+
+        //get IDX0, Employee ID
+        var ID0 = s.substring(0,ID0_LEN);
+
+        //get FName
+        idx = s.indexOf(' ');
+        var FName = s.substring(ID0_LEN, idx);
+
+        //get LName
+        while (s.charAt(idx++) == ' ');
+        var LName = s.substring(idx-1, s.indexOf(' ', idx));
+
+        //get ID1
+        idx += LName.length;
+        while (s.charAt(idx++) == ' '); //skip spaces
+        var ID1 = s.substring(idx-1, ID1_LEN+idx-1);
+
+        //get ID2
+        idx += ID1_LEN;
+        while (s.charAt(idx++) == ' '); //skip spaces
+        var ID2 = s.substring(idx-1, ID2_LEN+idx-1);
+
+        for (idx=0;idx<Emps.length;idx++)
+        {
+            if (Emps[idx].substring(0, ID0_LEN) == ID0)
+                bIn = !bIn;
+        }
+
+        Emps[idx] = ID0+","+bIn+","+ctime;
+        var sIn = "In";
+        if (!bIn) sIn = "Out"
+        label1.innerHTML = ID0 + "," + FName + "," + LName + "," + ID1 + "," + ID2;
+        sData = sIn + "-" + LName + "," + FName;
+    }
+
+    AddItem(box1, ctime + ": " + sData);
+    SetStatus();
+    return bIn;
+}
+
+function CommPoll()
+{
+/*
+   var Z;
+
+   if (Comm1.InbufferCount > 0)
+   {
+      clearInterval(iCommTimerID);
+
+      while (Comm1.InbufferCount > 0) {
+         Z = Comm1.Input;
+         strRecv += Z;
+      }
+
+      AddEntry(strRecv);
+      strRecv = "";
+      iCommTimerID = setInterval("CommPoll()", POLL_INTERVAL);
+   }
+*/
+}
+
+function CommClose()
+{
+   clearInterval(iCommTimerID);
+/*
+   if (Comm1.PortOpen) {
+      Comm1.PortOpen = false;
+   }
+*/
+}
+
+function CommOpen()
+{
+/*
+   var e;
+
+   if (Comm1.PortOpen) {
+      Comm1.PortOpen = false;
+   }
+
+   try {
+      Comm1.CommPort = COM_PORT;
+      Comm1.RThreshold = 1;
+      Comm1.Settings = COM_RS232;
+      Comm1.PortOpen = true;
+   } catch(e) {
+      alert("The Port could not be opened (" + e.description + "). Please try again.");
+   }
+
+   if (Comm1.PortOpen)
+   {
+      strRecv = "";
+      iCommTimerID = setInterval("CommPoll()",POLL_INTERVAL);
+   }
+*/
+}
+
+function ShowDateTime()
+{
+/*
+    if (!document.all)
+        return
+*/
+    var dayarray = new Array("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
+    var montharray = new Array("January","February","March","April","May","June","July","August","September","October","November","December")
+    var vDate = new Date()
+    var year = vDate.getYear()
+    var day = vDate.getDay()
+    var month = vDate.getMonth()
+    var daym = vDate.getDate()
+    var hours = vDate.getHours()
+    var minutes = vDate.getMinutes()
+    var seconds = vDate.getSeconds()
+    var dn = "AM" 
+
+    if (year < 1000)
+        year += 1900
+
+    if (hours > 12)
+    {
+       dn = "PM"
+       hours = hours-12
+    }
+
+    if (hours == 0)
+       hours = 12
+
+    if (minutes <= 9)
+       minutes = "0" + minutes
+
+    if (seconds <= 9)
+       seconds = "0" + seconds
+
+    var cdate = dayarray[day] + ", " + montharray[month] + " " + daym + ", " + year
+    strDate.innerHTML = "<b style='position:absolute;top:40px;left:300px;width:330px;font-family:Arial;font-size:22;color:white;text-align:center;'>" + cdate + "</b>"
+
+    var ctime = hours + ":" + minutes + ":" + seconds + " " + dn
+    strTime.innerHTML = "<b style='position:absolute;top:70px;left:300px;width:330px;font-family:Arial;font-size:48;color:yellow;text-align:center;'>" + ctime + "</b>"
+    setTimeout("ShowDateTime()",1000)
+}
+
+function DoClose()
+{
+   CommClose();
+   label1.innerHTML = "Clock disabled";
+}
+
+function DoOpen()
+{
+   CommOpen();
+/*
+   if (Comm1.PortOpen)
+   {
+      label1.innerHTML = "Clock Active...";
+   }
+*/
+}
+
+function DoIn()
+{
+    var Emp1 = "16T6NAVS16C9E3DBenjamin            Maynard                   AT0SKN00      NF04B6RLB7TSN";
+	PlayFile(AUDIO_CLOCK_IN);
+    if (!AddEntry(Emp1)) //clocked-out, clock them back in
+    {
+        AddEntry(Emp1);
+    }
+    //alert("Scan employee card...");
+}
+
+function DoOut()
+{
+/*
+    window.close();
+    self.close();
+    this.close();
+*/
+    var Emp1 = "16T6NAVS16C9E3DBenjamin            Maynard                   AT0SKN00      NF04B6RLB7TSN";
+	PlayFile(AUDIO_CLOCK_OUT);
+    if (AddEntry(Emp1)) //clocked-in, clock them back out
+    {
+        AddEntry(Emp1);
+    }
+}
+
+function DoView()
+{             //16T6NAVS16C9E3D,Benjamin,Maynard,AT0SKN00,NF04B6RLB7TSN
+    var Emp1 = "16T6NAVS16C9E3DBenjamin            Maynard                   AT0SKN00      NF04B6RLB7TSN";
+    //alert("Do View!");
+    //label1.innerHTML = "Do View";
+    //AddEntry(Emp1);
+    //window.location.reload( false );
+    //alert("You have 28.5 hours this week.");
+    label1.innerHTML = "You have 28.5 hours this week.";
+    SetStatus();
+}
+
+function DoSetup()
+{
+    ShowDateTime();
+    DoOpen();
+    ClearStatus();
+    SetStatus();
+}
+
+function DoCancel()
+{
+	//OpenUrl("MainMenu.htm");
+	window.location.assign("MainMenu.htm");
+}
+
+window.onload=DoSetup
+window.onunload=DoClose
+
+//-->
+</script>
+
+</html>
